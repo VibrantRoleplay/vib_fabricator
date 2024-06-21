@@ -102,3 +102,4 @@ setContainerProperties('small_fabricator', {
 ```
 
 ## How to get support
+https://discord.gg/PdjtgQKpvs
