@@ -3,6 +3,7 @@
 -------------
 local config = require 'config.server'
 local sharedConfig = require 'config.shared'
+QBCore = nil
 
 ---------------
 -- Callbacks --
@@ -22,7 +23,44 @@ end)
 --------------
 -- Commands --
 --------------
+lib.addCommand('setfabrep', {
+    help = 'Set fabrication rep',
+    params = {
+        {
+            name = "reputation",
+            type = "integer",
+        },
+    },
+    restricted = "group.god"
+}, function(source, args, raw)
+    lib.print.debug("config.framework", config.framework)
+    if config.framework == "qbcore" then
+        local Player = QBCore.Functions.GetPlayer(source)
 
+        local rep = Player.PlayerData.metadata["jobrep"]
+        lib.print.debug("Old Rep: ", rep)
+        rep.fabricator = args.reputation
+        Player.Functions.SetMetaData("jobrep", rep)
+    end
+end)
+
+lib.addCommand('fabricator', {
+    help = 'Show fabrication rep',
+    restricted = "group.god"
+}, function(source, args, raw)
+    lib.print.debug("config.framework", config.framework)
+    if config.framework == "qbcore" then
+        local Player = QBCore.Functions.GetPlayer(source)
+
+        local rep = Player.PlayerData.metadata["jobrep"].fabricator or 1
+        lib.notify(source,{
+            title = "Fabricator Rep",
+            description = "Reputation: "..rep,
+            type = 'success',
+            duration = 5000
+        })
+    end
+end)
 
 ---------------
 -- Functions --
@@ -31,6 +69,14 @@ end)
 ------------
 -- Events --
 ------------
+RegisterNetEvent("vib_fabricator:server:setframework", function(framework)
+    local src = source
+    config.framework = framework
+    if framework == "qbcore" then
+        QBCore = exports["qb-core"]:GetCoreObject()
+    end
+end)
+
 RegisterNetEvent("vib_fabricator:server:fabricator", function(recipe, id)
     local src = source
     lib.print.debug("Running vib_fabricator:server:fabricator")

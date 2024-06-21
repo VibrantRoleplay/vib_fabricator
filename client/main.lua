@@ -9,38 +9,58 @@ local serverConfig = nil
 ---------------
 -- Functions --
 ---------------
-local function calculateReputationModifier(val, multiplier)
-    lib.print.debug("Starting calculateReputationModifier(val, multiplier)", val, multiplier)
+local function calculateReputationModifier(valueToModify, baseMultiplier)
+    lib.print.debug("Starting calculateReputationModifier(val, multiplier)", valueToModify, baseMultiplier)
 
-    -- Calculates our reputation and then multiplies it by our multiplier to return our value
-    local currentRep = nil
+    -- Set a base reputation
+    local currentRep = 1
 
     if config.repStorage.type == "PlayerData" then
-        if sharedConfig.framework == "qbcore" then
-            local player = QBCore.Functions.GetPlayerData()
-            currentRep = player.PlayerData.metadata[config.repStorage.key].config.repStorage.val
-        
-            if currentRep == nil then
-                currentRep = 1
-            end
-        end
+        local PlayerData = nil
 
         if sharedConfig.framework == "qbox" then
-            local player = exports.qbx_core:GetPlayerData()
-            currentRep = player.PlayerData.metadata[config.repStorage.key].config.repStorage.val
-        
-            if currentRep == nil then
-                currentRep = 1
-            end
+            lib.print.debug("Detecting Framework as", sharedConfig.framework)
+            PlayerData = exports.qbx_core:GetPlayerData()
         end
+
+        if sharedConfig.framework == "qbcore" then
+            lib.print.debug("Detecting Framework as", sharedConfig.framework)
+            PlayerData = QBCore.Functions.GetPlayerData()
+        end
+
+        -- If we cannot calculate PlayerData, just return the original value, and notify the player.
+        if PlayerData == nil or PlayerData == {} then
+            lib.notify({
+                title = 'Error',
+                description = 'Error calculating reputation, send client log to Admins.',
+                type = 'error',
+                duration = 10000,
+            })
+            return valueToModify
+        end
+
+        -- Get our values from the config, this is used to access reputation.
+        local key = config.repStorage.key
+        local val = config.repStorage.val
+
+        -- Retrieve our reputation
+        lib.print.debug("key, val, PlayerData.metadata[key]", key, val, PlayerData.metadata[key])
+        currentRep = PlayerData.metadata[key][val] or 1
+        lib.print.debug("currentRep", currentRep)
+
+        local repModifier = math.min(currentRep // 25 * 0.01, 0.50)
+        local finalModifier = baseMultiplier + repModifier
+        lib.print.debug("Calculated new modifier as", finalModifier)
+    
+        valueToModify = valueToModify - (finalModifier * valueToModify)
+        
+        lib.print.debug("Ending calculateReputationModifier: valueToModify", valueToModify)
+        return valueToModify
     end
 
-    -- Here is where we multiply it by our value and our modifier
-    val = (val-(multiplier * val))
-
-    lib.print.debug("Ending calculateReputationModifier: val", val)
-    return val
+    return valueToModify
 end
+
 
 local function sudotext(text)
     local scaleform = RequestScaleformMovie("mp_big_message_freemode")
@@ -95,6 +115,16 @@ local function createTargets()
                 icon = 'fa fa-hand',
                 label = "Attach and Charge Fabricator",
                 onSelect = function()
+
+                    if config.states.rope ~= nil then
+                        local alert = lib.alertDialog({
+                            header = 'Error',
+                            content = "You are already attached, please detach and attach to recharge.",
+                            centered = true,
+                            cancel = false
+                        })
+                        return
+                    end
 
                     local count = exports.ox_inventory:Search('count', 'large_fabricator')
 
@@ -226,6 +256,16 @@ local function createTargets()
                 icon = 'fa fa-hand',
                 label = "Attach Fabricator",
                 onSelect = function()
+
+                    if config.states.rope ~= nil then
+                        local alert = lib.alertDialog({
+                            header = 'Error',
+                            content = "You do not have a large fabricator on you.",
+                            centered = true,
+                            cancel = false
+                        })
+                        return
+                    end
 
                     SetRopesCreateNetworkWorldState(true)
 

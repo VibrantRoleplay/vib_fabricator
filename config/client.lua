@@ -9,7 +9,7 @@ return {
     },
 
     -- Default charge duration
-    batteryChargeDuration = 3000,
+    batteryChargeDuration = 30000,
 
     -- Reputation multiplier; currently 1%. 
     batteryRepMultiplier = .01,
