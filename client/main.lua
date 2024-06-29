@@ -646,30 +646,56 @@ RegisterNetEvent('vib_fabricator:client:fabricator', function(slot, size)
             title = v.output[1].label,
             onSelect = function() 
                 lib.print.debug("Running vib_fabricator:server:fabricator")
-                TriggerServerEvent('vib_fabricator:server:fabricator', v, containerId)
-                sudotext("Fabricated: "..v.output[1].label)
 
-                -- Let's remove our charge.
-                -- item.metadata, slot
-                local metadata = item.metadata
-                local currentCharge = metadata.chargelevel
-                lib.print.debug("Pre currentCharge", currentCharge)
-                lib.print.debug("Pre drainAmount", config.batteryDrainPerUse)
+                if lib.progressBar({
+                    duration = 15000,
+                    label = 'Fabricating',
+                    useWhileDead = false,
+                    canCancel = true,
+                    disable = {
+                        car = true,
+                        combat = true,
+                        move = true,
+                    },
+                    anim = {
+                        clip = 'machinic_loop_mechandplayer',
+                        dict = 'anim@amb@clubhouse@tutorial@bkr_tut_ig3@',
+                        flag = 1
+                    },
+                    prop = {
+                        model = 'v_med_oscillator4',
+                        bone = 60309,
+                        pos = {x = 0.0, y = 0.0, z = 0.0},
+                        rot = {x = 0.0, y = 0.0, z = 0.0}
+                    }
+                }) then 
+                    deleteAllProps()
+                    TriggerServerEvent('vib_fabricator:server:fabricator', v, containerId)
+                    sudotext("Fabricated: "..v.output[1].label)
 
-                local drainAmount = calculateReputationModifier(config.batteryDrainPerUse, config.batteryDrainPerUseMultiplier)
-                local newCharge = currentCharge - drainAmount
-
-                if newCharge < 0 then 
-                    newCharge = 0
+                    -- Let's remove our charge.
+                    -- item.metadata, slot
+                    local metadata = item.metadata
+                    local currentCharge = metadata.chargelevel
+                    lib.print.debug("Pre currentCharge", currentCharge)
+                    lib.print.debug("Pre drainAmount", config.batteryDrainPerUse)
+    
+                    local drainAmount = calculateReputationModifier(config.batteryDrainPerUse, config.batteryDrainPerUseMultiplier)
+                    local newCharge = currentCharge - drainAmount
+    
+                    if newCharge < 0 then 
+                        newCharge = 0
+                    end
+    
+                    metadata.chargelevel = newCharge
+    
+                    lib.print.debug("Calculated drainAmount", drainAmount)
+                    lib.print.debug("Calculated newCharge", config.batteryDrainPerUse)
+    
+                    TriggerServerEvent('vib_fabricator:server:setmetadata', slot, metadata)    
+                else 
+                    print('Do stuff when cancelled') 
                 end
-
-                metadata.chargelevel = newCharge
-
-                lib.print.debug("Calculated drainAmount", drainAmount)
-                lib.print.debug("Calculated newCharge", config.batteryDrainPerUse)
-
-                TriggerServerEvent('vib_fabricator:server:setmetadata', slot, metadata)
-
             end,
         })
     end
