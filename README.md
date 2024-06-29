@@ -1,5 +1,34 @@
 # Fabricator
 
+## How does it work
+vib_fabricator is an ox_inventory container based crafting resource. It works by placing ingredients inside an ox_inventory container, and then pressing 'activate' to explore what things you can create with the items you put in the container.
+
+It has a 'charging' concept, where you need to either be attached (using a rope native) to a power source, OR the portable fabricator can be charged using an external battery.
+
+Battery levels are tracked in the metadata of the item, so no database components.
+
+## How you use the items
+
+### Large Fabricator
+1. Purchase the fabricator from the shop.
+2. Right click on the item, and press 'Use'.
+3. Place your items in the item on the right side of your inventory.
+4. Walk to the power source (near the shop), and use ox_target to look at the power source.
+5. Click 'Attach and Charge'. This charges your fabricator, and you're ready to use it.
+6. While still attached, right click on the item, and press 'Activate'.
+
+An ox_lib context menu you pop up, and give you a menu of items you can make with those ingredients. Click one, and enjoy.
+
+### Small Fabricator
+1. Purchase the fabricator AND a battery from the shop.
+2. Right click on the item, and press 'Use'.
+3. Place the battery in the right side of your inventory.
+4. Press Activate.
+5. Your battery is now charged and you can take this anywhere.
+6. Use it like you would the large_fabricator.
+
+NOTE: small fabricators can only use 3 ingredients, large fabricator can do 5.
+
 ## How to install
 
 ### Configure ox_inventory
