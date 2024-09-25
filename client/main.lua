@@ -86,226 +86,12 @@ end
 local function deleteAllProps()
     for _, v in pairs(GetGamePool("CObject")) do
         if IsEntityAttachedToEntity(cache.ped, v) then
-          SetEntityAsMissionEntity(v, true, true)
-          DeleteObject(v)
-          DeleteEntity(v)
+            SetEntityAsMissionEntity(v, true, true)
+            DeleteObject(v)
+            DeleteEntity(v)
         end
     end
 end
-
-local function createTargets()
-    lib.print.debug("Running createTargets()")
-    -- Get the server config
-    serverConfig = lib.callback.await("vib_fabricator:server:getconfig")
-    lib.print.debug("createTargets(): Got serverConfig")
-
-    for _, v in pairs(serverConfig.locations.large_fabricator_locations) do
-        lib.print.debug("Trying to discovery object at", v)
-        local obj = lib.getClosestObject(v, 5.0)
-
-        lib.print.debug("createTargets(): Object Discovery:", obj)
-        if obj == nil then 
-            lib.print.debug("Could not find an object")
-            return
-        else
-            lib.print.debug("Found an object", obj)
-        end
-
-        exports.ox_target:addLocalEntity(obj, {
-            {
-                icon = 'fa fa-hand',
-                label = "Attach and Charge Fabricator",
-                onSelect = function()
-
-                    if config.states.rope ~= nil then
-                        local alert = lib.alertDialog({
-                            header = 'Error',
-                            content = "You are already attached, please detach and attach to recharge.",
-                            centered = true,
-                            cancel = false
-                        })
-                        return
-                    end
-
-                    local count = exports.ox_inventory:Search('count', 'large_fabricator')
-
-                    if count < 1 then
-                        local alert = lib.alertDialog({
-                            header = 'Error',
-                            content = "You do not have a large fabricator on you.",
-                            centered = true,
-                            cancel = false
-                        })
-                        return
-                    end
-
-
-                    SetRopesCreateNetworkWorldState(true)
-
-                    local ropeType = 4 -- Type of the rope (for example, 4 for normal rope)
-                    local ropeLength = 5.0 -- Length of the rope
-    
-                    local playerCoords = GetEntityCoords(PlayerPedId())
-                    local objCoords = v
-    
-                    config.states.rope = AddRope(playerCoords.x, playerCoords.y, playerCoords.z, 0.0, 0.0, 0.0, ropeLength, ropeType, ropeLength, 0.1, false, false, false, 1.0, false, 0)
-    
-                    if config.states.rope ~= -1 then
-    
-                        AttachEntitiesToRope(config.states.rope, PlayerPedId(), obj, playerCoords.x, playerCoords.y, playerCoords.z, objCoords.x, objCoords.y, objCoords.z, ropeLength, false, false)
-                        ActivatePhysics(config.states.rope)
-                        RopeLoadTextures()
-                        
-                    end
-
-                    -- Calculate the duration
-                    local calculatedDuration = calculateReputationModifier(config.batteryChargeDuration, config.batteryRepMultiplier)
-                    if calculatedDuration == nil then
-                        calculatedDuration = config.batteryChargeDuration
-                        lib.print.error("Error calculating duration")
-                    end
-
-                    lib.print.debug("Calculated Duration", duration)
-
-                    if lib.progressBar({
-                        duration = calculatedDuration,
-                        label = 'Charging Fabricator Battery',
-                        useWhileDead = false,
-                        canCancel = true,
-                        disable = {
-                            move = true,
-                            car = true,
-                            mouse = false,
-                            combat = true
-                        },
-                        anim = {
-                            clip = 'machinic_loop_mechandplayer',
-                            dict = 'anim@amb@clubhouse@tutorial@bkr_tut_ig3@',
-                            flag = 49
-                        },
-                        prop = {
-                                model = 'sum_prop_sum_power_cell',
-                                bone = 60309,
-                                pos = {x = 0.12, y = 0.008, z = 0.03},
-                                rot = {x = -240.0, y = 60.0, z = 120.0}
-                        }
-                    }) then
-                        print("DONE Charged")
-
-                        -- Loop through all your items and make sure you don't have more than 1 fabricator on you.
-                        local count = exports.ox_inventory:Search('count', 'large_fabricator')
-
-                        if count > 1 then
-							local alert = lib.alertDialog({
-								header = 'Error',
-								content = "Cannot charge more than 1 large fabricator at a time.",
-								centered = true,
-								cancel = false
-							})
-                            return
-                        end
-
-                        local item = exports.ox_inventory:Search('slots', 'large_fabricator')
-                        lib.print.debug("item", item)
-                        for _, v in pairs(item) do
-                            lib.print.debug(v.slot, slot)
-                            if (v.slot == item[1].slot) then 
-
-                                local metadata = v.metadata
-                                
-                                lib.print.debug("large_fabricator metadata before", metadata)
-    
-                                -- Get the metadata from the slot, find the max battery level.
-                                if metadata.maxbattery == nil then
-                                    metadata.maxbattery = 100
-                                end
-
-                                -- Random chance to remove 1% of battery.
-                                if math.random(config.batteryDecay.min, config.batteryDecay.max) == config.batteryDecay.min then
-                                    metadata.maxbattery = metadata.maxbattery - 1
-                                    TriggerServerEvent('vib_fabricator:server:setmetadata', v.slot, metadata)
-
-                                    lib.notify({
-                                        title = 'Battery Degraded',
-                                        description = 'Battery has degraded by 1%.',
-                                        type = 'success'
-                                    })
-                                end
-
-                                -- Set the metadata for the charge level to the max.
-                                Wait(500)
-
-                                metadata.chargelevel = metadata.maxbattery
-                                lib.print.debug("Running vib_fabricator:server:setmetadata")
-                                TriggerServerEvent('vib_fabricator:server:setmetadata', v.slot, metadata)
-                            end
-                        end
-
-                        deleteAllProps()
-
-                    else
-                        for _, v in pairs(GetGamePool("CObject")) do
-                            deleteAllProps()
-                        end
-                        exports.qbx_core:Notify('Cancelled', 'error')
-                    end
-
-                end,
-                distance = 5,
-            },
-            {
-                icon = 'fa fa-hand',
-                label = "Attach Fabricator",
-                onSelect = function()
-
-                    if config.states.rope ~= nil then
-                        local alert = lib.alertDialog({
-                            header = 'Error',
-                            content = "You do not have a large fabricator on you.",
-                            centered = true,
-                            cancel = false
-                        })
-                        return
-                    end
-
-                    SetRopesCreateNetworkWorldState(true)
-
-                    local ropeType = 4 -- Type of the rope (for example, 4 for normal rope)
-                    local ropeLength = 5.0 -- Length of the rope
-    
-                    local playerCoords = GetEntityCoords(PlayerPedId())
-                    local objCoords = v
-    
-                    config.states.rope = AddRope(playerCoords.x, playerCoords.y, playerCoords.z, 0.0, 0.0, 0.0, ropeLength, ropeType, ropeLength, 0.1, false, false, false, 1.0, false, 0)
-    
-                    if config.states.rope ~= -1 then
-    
-                        AttachEntitiesToRope(config.states.rope, PlayerPedId(), obj, playerCoords.x, playerCoords.y, playerCoords.z, objCoords.x, objCoords.y, objCoords.z, ropeLength, false, false)
-                        ActivatePhysics(config.states.rope)
-                        RopeLoadTextures()
-                        
-                    end
-                end,
-                distance = 5,
-            },
-            {
-                icon = 'fa fa-hand',
-                label = "Detach Fabricator",
-                onSelect = function()
-                    DeleteRope(config.states.rope)
-                    SetRopesCreateNetworkWorldState(false)
-                    deleteAllProps()
-                    config.states.rope = nil
-                end,
-                distance = 5,
-            },
-        })
-    end
-
-    -- Store our state
-    lib.print.debug("Setting config.states.setup = true")
-    config.states.setup = true
- end
 
 ------------
 -- Events --
@@ -422,6 +208,7 @@ RegisterNetEvent('vib_fabricator:client:fabricator', function(slot, size)
             for _, reqItem in ipairs(recipe.input) do
                 lib.print.debug("EVAL RECIPE CONTENTS", reqItem.item, reqItem.count)
                 local item = mergedItems[reqItem.item]
+
                 if not (item and item.count >= reqItem.count) then
                     lib.print.debug("NO WE DO NOT HAVE ENOUGH")
                     return false
@@ -433,8 +220,10 @@ RegisterNetEvent('vib_fabricator:client:fabricator', function(slot, size)
         
         -- Finding all recipes that can be crafted
         local matched_recipes = {}
+
         for _, recipe in ipairs(recipes) do
             lib.print.debug("EVAL RECIPE", recipe)
+
             if hasSufficientItems(recipe) then
                 table.insert(matched_recipes, recipe)
             end
@@ -449,15 +238,27 @@ RegisterNetEvent('vib_fabricator:client:fabricator', function(slot, size)
 
     -- Now let's put our recipes into the format for ox_lib menu options
     local moptions = {}
+
+    if next(recipes_to_execute) == nil then
+        lib.notify({
+            title = 'Unable',
+            description = "You're unable to make anything out of these ingredients",
+            type = 'error'
+        })
+        return
+    end
+    
     for k,v in pairs(recipes_to_execute) do
         lib.print.debug("v", v.output[1].item)
         table.insert(moptions, {
             title = v.output[1].label,
+            icon = "nui://ox_inventory/web/images/"..v.output[1].item..".png",
             onSelect = function() 
                 lib.print.debug("Running vib_fabricator:server:fabricator")
 
-                if lib.progressBar({
+                if lib.progressCircle({
                     duration = 15000,
+                    position = 'bottom',
                     label = 'Fabricating',
                     useWhileDead = false,
                     canCancel = true,
@@ -517,7 +318,7 @@ RegisterNetEvent('vib_fabricator:client:fabricator', function(slot, size)
           print('Went back!')
         end,
         options = moptions
-      })
+    })
 
     Wait(500)
     lib.showContext('fabricator')
@@ -542,7 +343,7 @@ CreateThread(function()
         if LocalPlayer.state.isLoggedIn == false then
             Wait(5000)
         else
-            createTargets()
+            createTargets(config)
         end
 
         Wait(5000)
