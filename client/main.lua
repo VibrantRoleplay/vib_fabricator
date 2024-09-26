@@ -9,7 +9,7 @@ local serverConfig = nil
 ---------------
 -- Functions --
 ---------------
-local function calculateReputationModifier(valueToModify, baseMultiplier)
+function calculateReputationModifier(valueToModify, baseMultiplier)
     lib.print.debug("Starting calculateReputationModifier(val, multiplier)", valueToModify, baseMultiplier)
 
     -- Set a base reputation
@@ -62,7 +62,7 @@ local function calculateReputationModifier(valueToModify, baseMultiplier)
 end
 
 
-local function sudotext(text)
+function sudotext(text)
     local scaleform = RequestScaleformMovie("mp_big_message_freemode")
     while not HasScaleformMovieLoaded(scaleform) do
         Wait(0)
@@ -83,7 +83,7 @@ local function sudotext(text)
     SetScaleformMovieAsNoLongerNeeded(scaleform)
 end
 
-local function deleteAllProps()
+function deleteAllProps()
     for _, v in pairs(GetGamePool("CObject")) do
         if IsEntityAttachedToEntity(cache.ped, v) then
             SetEntityAsMissionEntity(v, true, true)
